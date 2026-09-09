@@ -1,4 +1,5 @@
-import { isCurrentUserAdmin } from "@/lib/admin-check";
+import { redirect } from "next/navigation";
+import { getAdminCheckArgs, isCurrentUserAdmin } from "@/lib/admin-check";
 import {
   intentEmoji,
   intentLabel,
@@ -299,7 +300,20 @@ export default async function AppointmentsAdminPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
-  if (!(await isCurrentUserAdmin())) throw new Error("權限不足");
+  // 2026-09-09：原本是 throw new Error("權限不足") → 打開後台看到的是一整頁 500 錯誤，
+  // 連「要去哪裡登入」都不知道。改成：沒登入 → 送去 Google 登入、登完自動回來；
+  // 登入了但不在名單 → 講清楚是哪個帳號、怎麼換帳號。
+  const { email } = await getAdminCheckArgs();
+  if (!email) redirect(`/api/auth/signin?callbackUrl=${encodeURIComponent("/admin/appointments")}`);
+  if (!(await isCurrentUserAdmin())) {
+    return (
+      <main style={{ padding: 40, fontFamily: "system-ui, sans-serif", lineHeight: 1.8, maxWidth: 640 }}>
+        <h1 style={{ fontSize: 22, margin: "0 0 12px" }}>這個 Google 帳號不在後台名單裡</h1>
+        <p>你現在登入的是 <b>{email}</b>。後台只開放給 <code>ADMIN_EMAILS</code> 裡列的信箱。</p>
+        <p><a href="/api/auth/signout?callbackUrl=%2Fadmin%2Fappointments">登出，換一個帳號</a></p>
+      </main>
+    );
+  }
 
   const sp = await searchParams;
   const queue = QUEUES.some((item) => item.key === sp.queue) ? (sp.queue as AppointmentQueue) : "all";
