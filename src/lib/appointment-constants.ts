@@ -78,50 +78,14 @@ export type MeetTypeKey = (typeof MEET_TYPES)[number]["key"];
 
 export const BOOKING_MODES = [
   { key: "realtor", label: "房產諮詢" },
-  { key: "collaboration", label: "合作 / 拍片洽談" },
   { key: "interview", label: "面試預約" },
 ] as const;
 
 export type BookingMode = (typeof BOOKING_MODES)[number]["key"];
 export const BOOKING_MODE_KEYS = BOOKING_MODES.map((mode) => mode.key) as readonly string[];
 
-/** 合作洽談的正式分類。key 供系統判斷，label 供日曆與後台顯示。 */
-export const COLLABORATION_INTENTS = [
-  { key: "video", label: "拍片／內容合作", description: "YouTube、短影音、Podcast、聯名內容" },
-  { key: "course", label: "課程／講座", description: "企業內訓、公開講座、課程共製" },
-  { key: "brand", label: "品牌／商務", description: "品牌合作、通路、產品或專案洽談" },
-  { key: "media", label: "媒體採訪", description: "採訪、節目、專題或資料邀請" },
-] as const;
-
-export type CollaborationIntentKey = (typeof COLLABORATION_INTENTS)[number]["key"];
-export type CollaborationIntent = {
-  key: CollaborationIntentKey;
-  label: (typeof COLLABORATION_INTENTS)[number]["label"];
-};
-
-/**
- * 只回傳 allowlist 內的合作分類。舊資料沒有 key 時，從 purpose 的中文前綴回推。
- * label 永遠取系統常數，不信任客戶端自行送入的文字。
- */
-export function resolveCollaborationIntent(input: {
-  key?: unknown;
-  label?: unknown;
-  purpose?: unknown;
-}): CollaborationIntent | null {
-  const key = String(input.key || "").trim();
-  const byKey = COLLABORATION_INTENTS.find((item) => item.key === key);
-  if (byKey) return { key: byKey.key, label: byKey.label };
-
-  const label = String(input.label || "").trim();
-  const byLabel = COLLABORATION_INTENTS.find((item) => item.label === label);
-  if (byLabel) return { key: byLabel.key, label: byLabel.label };
-
-  const purpose = String(input.purpose || "").trim();
-  const byPurpose = COLLABORATION_INTENTS.find((item) =>
-    purpose === item.label || purpose.startsWith(`${item.label}：`) || purpose.startsWith(`${item.label}:`),
-  );
-  return byPurpose ? { key: byPurpose.key, label: byPurpose.label } : null;
-}
+// 2026-09-09 「合作 / 拍片洽談」這個預約目的已拿掉（店東拍板：名片只留房產諮詢與面試）。
+// 舊資料若還帶 collaborationIntent* 欄位，資料庫原樣保留，後台仍可顯示，前台不再產生新的。
 
 export type AppointmentStatus = "pending_confirmation" | "confirmed" | "completed" | "cancelled" | "expired";
 export type AppointmentAttendanceStatus = "pending" | "confirmed" | "arrived" | "no_show";
@@ -134,8 +98,6 @@ export type AppointmentQualification = {
   area?: string;
   budget?: string;
   purpose?: string;
-  collaborationIntentKey?: CollaborationIntentKey;
-  collaborationIntentLabel?: CollaborationIntent["label"];
   propertyAddress?: string;
   propertyType?: string;
   legalTopic?: string;

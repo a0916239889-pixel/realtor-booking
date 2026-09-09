@@ -35,24 +35,29 @@ export const metadata: Metadata = {
   },
 };
 
+// 2026-09-09 大頭照改直式：原圖是 1000×1500 的半身照，塞進正方形圓框時
+// object-fit: cover 會把上下各切掉一段，頭頂與手臂都被裁掉。改成 3:4 直式圓角框，
+// 並把裁切基準點壓到頂端（objectPosition 50% 0%），臉與雙手就完整留在框內。
+const PHOTO_W = 152;
+const PHOTO_H = 202;
+
 function PhotoCircle() {
-  const size = 150;
   const shared: CSSProperties = {
-    width: size,
-    height: size,
-    borderRadius: "50%",
+    width: PHOTO_W,
+    height: PHOTO_H,
+    borderRadius: 20,
     border: "5px solid #fff",
-    boxShadow: "0 8px 26px rgba(28,45,58,0.18)",
+    boxShadow: "0 10px 30px rgba(59,38,27,0.20)",
   };
   if (ABIN.photoUrl) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
-      <img src={ABIN.photoUrl} alt={ABIN.name} width={size} height={size} style={{ ...shared, objectFit: "cover", objectPosition: "center" }} />
+      <img src={ABIN.photoUrl} alt={ABIN.name} width={PHOTO_W} height={PHOTO_H} style={{ ...shared, objectFit: "cover", objectPosition: "50% 0%" }} />
     );
   }
   return (
-    <div style={{ ...shared, background: `linear-gradient(135deg,${RCIS.sky},${RCIS.skyDeep})`, color: "#fff", fontSize: 46, fontWeight: 800, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
-      濱
+    <div style={{ ...shared, background: `linear-gradient(135deg,${RCIS.sky},${RCIS.skyDeep})`, color: "#fff", fontSize: 52, fontWeight: 800, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+      {ABIN.name.slice(0, 1)}
     </div>
   );
 }
@@ -107,10 +112,10 @@ export default function CardPage() {
           {/* cover */}
           {/* 原本這裡有一行品牌字，但置中的大頭照會壓到它（手機更明顯），
               而名字與頭銜下面已經完整寫了一次，就不重複 */}
-          <div style={{ height: 92, background: `linear-gradient(120deg,${RCIS.sky},${RCIS.skyDeep})`, position: "relative" }} />
+          <div style={{ height: 104, background: `linear-gradient(120deg,${RCIS.sky},${RCIS.skyDeep})`, position: "relative" }} />
 
           {/* 照片 */}
-          <div style={{ marginTop: -78, textAlign: "center", position: "relative", zIndex: 2 }}>
+          <div style={{ marginTop: -86, textAlign: "center", position: "relative", zIndex: 2, lineHeight: 0 }}>
             <PhotoCircle />
           </div>
 
@@ -126,7 +131,7 @@ export default function CardPage() {
 
           {/* CTA */}
           <div style={{ padding: "18px 26px 6px", display: "grid", gap: 11 }}>
-            <Link href="/card/booking" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 9, background: RCIS.orange, color: RCIS.ink, fontSize: 17, fontWeight: 800, padding: "15px", borderRadius: 13, textDecoration: "none", boxShadow: "0 8px 20px rgba(245,169,29,0.3)" }}>
+            <Link href="/card/booking" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 9, background: RCIS.orange, color: RCIS.ink, fontSize: 17, fontWeight: 800, padding: "15px", borderRadius: 13, textDecoration: "none", boxShadow: "0 8px 20px rgba(255,116,3,0.32)" }}>
               <CalendarIcon size={20} color={RCIS.ink} />
               線上預約諮詢
             </Link>

@@ -158,13 +158,13 @@ export default function PlaceAutocomplete({
       {/* Google 地點搜尋（新版自訂元素，自帶輸入框，限台灣）*/}
       {loaded ? (
         <div style={{ marginBottom: 8 }}>
-          <div style={{ fontSize: 13, color: "#5A7A8C", marginBottom: 6, lineHeight: 1.5, fontWeight: 600 }}>
+          <div style={{ fontSize: 13, color: "#6B5344", marginBottom: 6, lineHeight: 1.5, fontWeight: 600 }}>
             🔍 在下方框輸入「地址 / 社區 / 店名」,再從跳出的清單點選你要約的地方
           </div>
           {/* ⚠️ 2026-06-26 修壞掉:新版 <gmp-place-autocomplete> 的下拉建議清單是絕對定位、
               渲染在輸入框「外面下方」。外層若 overflow:hidden(原本為了切圓角)會把整個下拉清單裁掉,
               客戶打字看不到任何建議 → 功能等於壞了。改 overflow:visible 讓清單能溢出顯示。*/}
-          <div style={{ border: "1.5px solid #BBD0DA", borderRadius: 10, overflow: "visible", background: "#fff", position: "relative", zIndex: 5 }}>
+          <div style={{ border: "1.5px solid #DCC8B8", borderRadius: 10, overflow: "visible", background: "#fff", position: "relative", zIndex: 5 }}>
             <GmpPlaceAutocomplete
               ref={attachEl}
               style={{ width: "100%", display: "block", colorScheme: "light", borderRadius: 10 }}
@@ -180,7 +180,7 @@ export default function PlaceAutocomplete({
       {hasCoords ? (
         <div
           ref={mapRef}
-          style={{ width: "100%", height: 140, borderRadius: 10, marginBottom: 8, overflow: "hidden", background: "#EAF1F4" }}
+          style={{ width: "100%", height: 140, borderRadius: 10, marginBottom: 8, overflow: "hidden", background: "#F4EBE4" }}
         />
       ) : null}
       {/* 手動備案:Google 找不到 → 直接打字 */}

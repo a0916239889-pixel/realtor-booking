@@ -95,10 +95,11 @@ const CONTACT_LABELS: Record<string, string> = {
   closed: "已結案",
 };
 
+// collaboration 已於 2026-09-09 從前台移除，這裡保留是為了看得懂舊資料。
 const MODE_LABELS: Record<string, string> = {
-  realtor: "房仲服務",
-  collaboration: "合作洽談",
-  interview: "採訪／訪談",
+  realtor: "房產諮詢",
+  collaboration: "合作洽談（已停用）",
+  interview: "面試預約",
 };
 
 function parseJsonArray(raw: string | null): string[] {

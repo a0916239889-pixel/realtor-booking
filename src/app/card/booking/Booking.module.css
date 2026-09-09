@@ -1,7 +1,7 @@
 .page {
   min-height: 100vh;
-  background: #f4f8fa;
-  color: #1c2d3a;
+  background: #faf7f4;
+  color: #3b261b;
   font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
   padding: 24px 16px 48px;
 }
@@ -13,11 +13,11 @@
 
 .header {
   padding: 8px 2px 24px;
-  border-bottom: 1px solid #d8e4e9;
+  border-bottom: 1px solid #eaded4;
 }
 
 .brand {
-  color: #1f6f83;
+  color: #c35b07;
   font-size: 13px;
   font-weight: 900;
   letter-spacing: 0.12em;
@@ -32,7 +32,7 @@
 
 .lead {
   margin: 0;
-  color: #526572;
+  color: #6b5344;
   font-size: 15px;
   line-height: 1.75;
 }
@@ -46,7 +46,7 @@
 
 .progressItem {
   min-width: 0;
-  color: #7a8896;
+  color: #7d6857;
   font-size: 12px;
   font-weight: 700;
   text-align: center;
@@ -57,15 +57,15 @@
   height: 4px;
   margin-bottom: 7px;
   border-radius: 2px;
-  background: #dbe5e9;
+  background: #ece1d8;
 }
 
 .progressItemActive {
-  color: #1f6f83;
+  color: #c35b07;
 }
 
 .progressItemActive .progressBar {
-  background: #4ec4dc;
+  background: #ff7403;
 }
 
 .form {
@@ -74,7 +74,7 @@
 
 .section {
   padding: 24px 2px;
-  border-bottom: 1px solid #d8e4e9;
+  border-bottom: 1px solid #eaded4;
 }
 
 .sectionHeading {
@@ -92,7 +92,7 @@
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: #1f6f83;
+  background: #c35b07;
   color: #fff;
   font-size: 13px;
   font-weight: 900;
@@ -107,7 +107,7 @@
 
 .sectionHint {
   margin: 0;
-  color: #667986;
+  color: #7d6857;
   font-size: 13px;
   line-height: 1.55;
 }
@@ -125,28 +125,28 @@
 .option {
   min-height: 74px;
   padding: 12px 13px;
-  border: 1.5px solid #cbd9df;
+  border: 1.5px solid #e6d5c8;
   border-radius: 8px;
   background: #fff;
-  color: #263b49;
+  color: #46301f;
   cursor: pointer;
   font: inherit;
   text-align: left;
 }
 
 .option:hover {
-  border-color: #4ec4dc;
+  border-color: #ff7403;
 }
 
 .optionActive {
-  border-color: #1f6f83;
-  background: #e8f7fb;
-  box-shadow: inset 0 0 0 1px #1f6f83;
+  border-color: #c35b07;
+  background: #fff0e5;
+  box-shadow: inset 0 0 0 1px #c35b07;
 }
 
 .optionDisabled {
-  background: #edf1f3;
-  color: #7a8896;
+  background: #f4ebe4;
+  color: #7d6857;
   cursor: not-allowed;
   opacity: 0.78;
 }
@@ -161,7 +161,7 @@
 .optionDescription {
   display: block;
   margin-top: 4px;
-  color: #657783;
+  color: #77604f;
   font-size: 12px;
   font-weight: 600;
   line-height: 1.5;
@@ -178,13 +178,13 @@
 .label {
   display: block;
   margin-bottom: 7px;
-  color: #3f5160;
+  color: #5a4437;
   font-size: 14px;
   font-weight: 800;
 }
 
 .optional {
-  color: #7a8896;
+  color: #7d6857;
   font-weight: 600;
 }
 
@@ -193,10 +193,10 @@
 .select {
   width: 100%;
   box-sizing: border-box;
-  border: 1.5px solid #bdced6;
+  border: 1.5px solid #e0cdbe;
   border-radius: 8px;
   background: #fff;
-  color: #1c2d3a;
+  color: #3b261b;
   font: inherit;
   font-size: 16px;
   outline: none;
@@ -212,17 +212,17 @@
 .input:focus,
 .textarea:focus,
 .select:focus {
-  border-color: #1f6f83;
-  box-shadow: 0 0 0 3px rgba(78, 196, 220, 0.2);
+  border-color: #c35b07;
+  box-shadow: 0 0 0 3px rgba(255, 116, 3, 0.25);
 }
 
 .inputError {
-  border-color: #c9473e;
+  border-color: #b3261e;
 }
 
 .fieldError {
   margin: 6px 0 0;
-  color: #b8322a;
+  color: #9c1f18;
   font-size: 13px;
   font-weight: 700;
   line-height: 1.5;
@@ -233,19 +233,19 @@
 .successNotice,
 .warningNotice {
   margin: 12px 0 0;
-  border: 1px solid #cbd9df;
+  border: 1px solid #e6d5c8;
   border-radius: 8px;
   background: #fff;
-  color: #3f5160;
+  color: #5a4437;
   font-size: 14px;
   line-height: 1.7;
   padding: 11px 13px;
 }
 
 .errorNotice {
-  border-color: #e0aaa6;
-  background: #fff2f1;
-  color: #8f2822;
+  border-color: #e3b3af;
+  background: #fdeceb;
+  color: #7d1b15;
 }
 
 .successNotice {
@@ -255,13 +255,13 @@
 }
 
 .warningNotice {
-  border-color: #e7c47d;
-  background: #fff8e8;
-  color: #71510d;
+  border-color: #f0d2bf;
+  background: #fff6ee;
+  color: #6b3b09;
 }
 
 .link {
-  color: #1f6f83;
+  color: #c35b07;
   font-weight: 800;
 }
 
@@ -289,18 +289,18 @@
 
 .retryButton,
 .secondaryButton {
-  border-color: #b9ccd5;
+  border-color: #dcc8b8;
   background: #fff;
-  color: #1f6f83;
+  color: #c35b07;
 }
 
 .primaryButton {
-  background: #f5a91d;
-  color: #1c2d3a;
+  background: #ff7403;
+  color: #3b261b;
 }
 
 .dangerButton {
-  background: #c9473e;
+  background: #b3261e;
   color: #fff;
 }
 
@@ -324,10 +324,10 @@
   flex: 0 0 auto;
   min-width: 104px;
   min-height: 48px;
-  border: 1px solid #cbd9df;
+  border: 1px solid #e6d5c8;
   border-radius: 8px;
   background: #fff;
-  color: #3f5160;
+  color: #5a4437;
   cursor: pointer;
   font: inherit;
   font-size: 13px;
@@ -336,9 +336,9 @@
 }
 
 .dayTabActive {
-  border-color: #1f6f83;
-  background: #e8f7fb;
-  color: #1f6f83;
+  border-color: #c35b07;
+  background: #fff0e5;
+  color: #c35b07;
 }
 
 .slotGrid {
@@ -350,10 +350,10 @@
 .slotButton {
   min-width: 0;
   min-height: 44px;
-  border: 1px solid #cbd9df;
+  border: 1px solid #e6d5c8;
   border-radius: 8px;
   background: #fff;
-  color: #2f4654;
+  color: #4f3826;
   cursor: pointer;
   font: inherit;
   font-size: 14px;
@@ -362,10 +362,10 @@
 }
 
 .slotButtonActive {
-  border-color: #d88e08;
-  background: #fef3df;
-  color: #75500a;
-  box-shadow: inset 0 0 0 1px #d88e08;
+  border-color: #c35b07;
+  background: #fff0e5;
+  color: #70400a;
+  box-shadow: inset 0 0 0 1px #c35b07;
 }
 
 .durationRow {
@@ -378,10 +378,10 @@
 .durationButton {
   min-width: 92px;
   min-height: 42px;
-  border: 1px solid #cbd9df;
+  border: 1px solid #e6d5c8;
   border-radius: 8px;
   background: #fff;
-  color: #3f5160;
+  color: #5a4437;
   cursor: pointer;
   font: inherit;
   font-size: 14px;
@@ -390,16 +390,16 @@
 }
 
 .durationButtonActive {
-  border-color: #1f6f83;
-  background: #e8f7fb;
-  color: #1f6f83;
+  border-color: #c35b07;
+  background: #fff0e5;
+  color: #c35b07;
 }
 
 .selectionSummary {
   margin-top: 13px;
-  border-left: 4px solid #f5a91d;
-  background: #fff8e8;
-  color: #604714;
+  border-left: 4px solid #ff7403;
+  background: #fff6ee;
+  color: #5c3308;
   font-size: 14px;
   font-weight: 800;
   line-height: 1.65;
@@ -437,8 +437,8 @@
   display: grid;
   gap: 8px;
   margin: 18px 0 14px;
-  border-top: 1px solid #d8e4e9;
-  border-bottom: 1px solid #d8e4e9;
+  border-top: 1px solid #eaded4;
+  border-bottom: 1px solid #eaded4;
   padding: 14px 2px;
 }
 
@@ -446,13 +446,13 @@
   display: grid;
   grid-template-columns: 92px minmax(0, 1fr);
   gap: 12px;
-  color: #3f5160;
+  color: #5a4437;
   font-size: 14px;
   line-height: 1.55;
 }
 
 .summaryLabel {
-  color: #7a8896;
+  color: #7d6857;
 }
 
 .submit {
@@ -460,8 +460,8 @@
   min-height: 54px;
   border: 0;
   border-radius: 8px;
-  background: #f5a91d;
-  color: #1c2d3a;
+  background: #ff7403;
+  color: #3b261b;
   cursor: pointer;
   font: inherit;
   font-size: 18px;
@@ -475,7 +475,7 @@
 
 .submitHint {
   margin: 10px 0 0;
-  color: #667986;
+  color: #7d6857;
   font-size: 13px;
   line-height: 1.65;
   text-align: center;
@@ -493,10 +493,10 @@
   min-height: 44px;
   align-items: center;
   justify-content: center;
-  border: 1px solid #b9ccd5;
+  border: 1px solid #dcc8b8;
   border-radius: 8px;
   background: #fff;
-  color: #1f6f83;
+  color: #c35b07;
   font-size: 15px;
   font-weight: 850;
   padding: 9px 14px;
@@ -504,25 +504,25 @@
 }
 
 .actionLinkPrimary {
-  border-color: #1f6f83;
-  background: #1f6f83;
+  border-color: #c35b07;
+  background: #c35b07;
   color: #fff;
 }
 
 .statusPanel {
   margin-top: 18px;
-  border-top: 5px solid #4ec4dc;
+  border-top: 5px solid #ff7403;
   background: #fff;
-  box-shadow: 0 8px 28px rgba(28, 45, 58, 0.1);
+  box-shadow: 0 8px 28px rgba(59, 38, 27, 0.1);
   padding: 22px 20px;
 }
 
 .statusPanelWarning {
-  border-top-color: #f5a91d;
+  border-top-color: #ff7403;
 }
 
 .statusPanelDanger {
-  border-top-color: #c9473e;
+  border-top-color: #b3261e;
 }
 
 .statusTitle {
@@ -534,14 +534,14 @@
 
 .statusText {
   margin: 0;
-  color: #526572;
+  color: #6b5344;
   line-height: 1.75;
 }
 
 .countdown {
   display: inline-block;
   margin-top: 12px;
-  color: #8a5a00;
+  color: #84490a;
   font-size: 16px;
   font-weight: 900;
 }
@@ -550,25 +550,25 @@
   display: grid;
   gap: 0;
   margin: 18px 0;
-  border-top: 1px solid #d8e4e9;
+  border-top: 1px solid #eaded4;
 }
 
 .infoRow {
   display: grid;
   grid-template-columns: 100px minmax(0, 1fr);
   gap: 12px;
-  border-bottom: 1px solid #e3eaee;
+  border-bottom: 1px solid #eee3da;
   padding: 12px 0;
 }
 
 .infoLabel {
-  color: #7a8896;
+  color: #7d6857;
   font-size: 14px;
 }
 
 .infoValue {
   min-width: 0;
-  color: #1c2d3a;
+  color: #3b261b;
   font-size: 15px;
   font-weight: 750;
   line-height: 1.55;
@@ -577,8 +577,8 @@
 
 .reschedule {
   margin: 18px 0;
-  border-top: 1px solid #d8e4e9;
-  border-bottom: 1px solid #d8e4e9;
+  border-top: 1px solid #eaded4;
+  border-bottom: 1px solid #eaded4;
   padding: 18px 0;
 }
 

@@ -5,7 +5,6 @@ import {
   BOOKING_RULES,
   INTENT_KEYS,
   appointmentMeetingPolicy,
-  resolveCollaborationIntent,
   type AppointmentQualification,
   type BookingMode,
 } from "@/lib/appointment-constants";
@@ -49,17 +48,10 @@ export function parseBookingMode(value: unknown, intent: readonly string[]): Boo
 export function parseAppointmentQualification(value: unknown): PublicAppointmentQualification {
   const raw = value && typeof value === "object" ? (value as Record<string, unknown>) : {};
   const purpose = qualificationField(raw.purpose, 500);
-  const collaborationIntent = resolveCollaborationIntent({
-    key: raw.collaborationIntentKey,
-    label: raw.collaborationIntentLabel,
-    purpose,
-  });
   return {
     area: qualificationField(raw.area),
     budget: qualificationField(raw.budget),
     purpose,
-    collaborationIntentKey: collaborationIntent?.key,
-    collaborationIntentLabel: collaborationIntent?.label,
     propertyAddress: qualificationField(raw.propertyAddress, 300),
     propertyType: qualificationField(raw.propertyType),
     legalTopic: qualificationField(raw.legalTopic, 500),
@@ -103,16 +95,6 @@ export function validateBookingModeAndQualification(input: {
 
   if (intent.includes("interview")) {
     throw new PublicAppointmentValidationError("面試需求請使用「面試預約」模式。");
-  }
-
-  if (bookingMode === "collaboration") {
-    requireQualification(qualification, "collaborationIntentKey", "請選擇正確的合作方向。");
-    requireQualification(qualification, "collaborationIntentLabel", "合作方向格式不正確。");
-    requireQualification(qualification, "organization", "請填寫公司或單位名稱。");
-    requireQualification(qualification, "role", "請填寫你的職稱或角色。");
-    requireQualification(qualification, "purpose", "請簡述合作主題與希望達成的結果。");
-    requireQualification(qualification, "targetDate", "請填寫希望合作或會面的時間。");
-    return;
   }
 
   if (intent.some((item) => item === "buy" || item === "rent")) {

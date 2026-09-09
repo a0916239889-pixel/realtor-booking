@@ -12,7 +12,6 @@ import {
 import {
   BOOKING_CONFIRMATION_HOLD_MINUTES,
   BOOKING_MODES,
-  COLLABORATION_INTENTS,
   MEET_TYPES,
   URGENCIES,
   appointmentMeetingPolicy,
@@ -62,7 +61,6 @@ function readGaClientId(): string {
 
 const MODE_DESCRIPTIONS: Record<BookingMode, string> = {
   realtor: "買賣、租賃、房產法律或其他不動產問題",
-  collaboration: "拍片、課程、品牌、媒體或商務合作",
   interview: "應徵台灣房屋三重國小捷運特許加盟店相關職務",
 };
 
@@ -74,9 +72,6 @@ const MODE_INTENTS: Record<BookingMode, IntentOption[]> = {
     { key: "legal", label: "房產法律", description: "繼承、產權、買賣糾紛", apiIntent: "legal" },
     { key: "other", label: "其他房產問題", description: "不確定分類也可以先說明", apiIntent: "other" },
   ],
-  collaboration: [
-    ...COLLABORATION_INTENTS.map((item) => ({ ...item, apiIntent: "other" as const })),
-  ],
   interview: [
     { key: "realtor", label: "房仲業務", description: "門市業務、儲備幹部或轉職諮詢", apiIntent: "interview" },
     { key: "operations", label: "行政／客服", description: "營運、行政、客服相關職務", apiIntent: "interview" },
@@ -87,7 +82,6 @@ const MODE_INTENTS: Record<BookingMode, IntentOption[]> = {
 
 const MEET_TYPES_BY_MODE: Record<BookingMode, readonly string[]> = {
   realtor: ["office", "phone", "video", "custom"],
-  collaboration: ["video", "phone", "custom"],
   interview: ["office", "video", "phone"],
 };
 
@@ -144,14 +138,6 @@ function parseMeetLocation(value: unknown): MeetLocation | null {
 }
 
 function qualificationFields(mode: BookingMode, intent: string) {
-  if (mode === "collaboration") {
-    return [
-      { key: "organization", label: "公司／單位名稱", placeholder: "例：XX 品牌、XX 媒體", required: true },
-      { key: "role", label: "你的職稱／角色", placeholder: "例：行銷經理、製作人", required: true },
-      { key: "purpose", label: "希望合作的內容", placeholder: "請說明形式、對象與希望律廷參與的部分", required: true, multiline: true },
-      { key: "targetDate", label: "預計合作日期", placeholder: "例：8 月中、尚未確定", required: true },
-    ];
-  }
   if (mode === "interview") {
     return [
       { key: "role", label: "想應徵的職務", placeholder: "例：三重門市房仲業務", required: true },
@@ -331,7 +317,7 @@ export default function BookingForm() {
     const initialMode: BookingMode | "" =
       params.get("type") === "interview"
         ? "interview"
-        : requestedMode === "realtor" || requestedMode === "collaboration" || requestedMode === "interview"
+        : requestedMode === "realtor" || requestedMode === "interview"
           ? requestedMode
           : "";
     if (initialMode) setBookingMode(initialMode);
@@ -614,12 +600,7 @@ export default function BookingForm() {
       const params = new URLSearchParams(window.location.search);
       const qualificationPayload = {
         ...qualification,
-        collaborationIntentKey: bookingMode === "collaboration" ? selectedIntent.key : undefined,
-        collaborationIntentLabel: bookingMode === "collaboration" ? selectedIntent.label : undefined,
-        purpose:
-          bookingMode === "collaboration"
-            ? `${selectedIntent.label}：${qualification.purpose || ""}`
-            : qualification.purpose || selectedIntent.label,
+        purpose: qualification.purpose || selectedIntent.label,
         interviewTrack: bookingMode === "interview" ? selectedIntent.label : undefined,
       };
       const response = await fetch("/api/appointment/create", {
@@ -826,7 +807,7 @@ export default function BookingForm() {
             <section className={styles.section}>
               <SectionHeading
                 step={2}
-                title={bookingMode === "interview" ? "想談哪一類職務？" : bookingMode === "collaboration" ? "合作方向是什麼？" : "主要需求是什麼？"}
+                title={bookingMode === "interview" ? "想談哪一類職務？" : "主要需求是什麼？"}
                 hint="選最接近的一項即可，詳細內容會在最後補充。"
               />
               <div className={`${styles.optionGrid} ${styles.optionGridTwo}`} role="radiogroup" aria-label="預約需求">
