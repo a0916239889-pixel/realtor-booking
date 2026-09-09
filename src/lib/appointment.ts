@@ -227,6 +227,8 @@ export type AppointmentOutboxTaskType =
   | "calendar_create"
   | "calendar_reschedule"
   | "calendar_cancel"
+  /** 2026-09-09 新增：把客戶寫進 Google 聯絡人（＝手機通訊錄） */
+  | "contact_create"
   | "notify_new"
   | "notify_reschedule"
   | "notify_cancel"

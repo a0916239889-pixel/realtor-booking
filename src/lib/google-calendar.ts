@@ -26,7 +26,19 @@ const CLIENT_ID = process.env.GOOGLE_CALENDAR_CLIENT_ID || process.env.AUTH_GOOG
 const CLIENT_SECRET = process.env.GOOGLE_CALENDAR_CLIENT_SECRET || process.env.AUTH_GOOGLE_SECRET || "";
 const BASE_URL = process.env.APPOINTMENT_BASE_URL || "https://example.com";
 export const GOOGLE_REDIRECT_URI = `${BASE_URL}/api/appointment/google/callback`;
-const SCOPE = "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly";
+/**
+ * 授權範圍。
+ *
+ * 2026-09-09 多加了 contacts：預約成立後要順手把客戶寫進 Google 聯絡人
+ * （手機通訊錄跟 Google 聯絡人是同步的，寫進去手機就有，來電才會顯示名字）。
+ * ⚠️ 動到這一行等於「權限變了」，**舊的授權不會自動長出新權限** ——
+ *    要回後台按一次「解除綁定」再重新授權，不然聯絡人會一直 403。
+ */
+const SCOPE = [
+  "https://www.googleapis.com/auth/calendar.events",
+  "https://www.googleapis.com/auth/calendar.readonly",
+  "https://www.googleapis.com/auth/contacts",
+].join(" ");
 
 export function isGoogleConfigured(): boolean {
   return Boolean(CLIENT_ID && CLIENT_SECRET);
@@ -133,7 +145,8 @@ export async function exchangeCodeForToken(code: string): Promise<boolean> {
 
 // ---- access token(refresh token 換,module cache)----
 let accessTokenCache: { token: string; exp: number } | null = null;
-async function getAccessToken(): Promise<string | null> {
+/** google-contacts.ts 也要用同一把 token（同一次授權涵蓋日曆與聯絡人），所以匯出。 */
+export async function getAccessToken(): Promise<string | null> {
   if (accessTokenCache && accessTokenCache.exp > Date.now() + 60_000) return accessTokenCache.token;
   const refresh = await getConfig("google_refresh_token");
   if (!refresh || !isGoogleConfigured()) return null;

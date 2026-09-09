@@ -6,7 +6,7 @@
  *   - 系統擁有者通知（email + LINE）一律寄 = 系統通知 / 預先核可（寄系統擁有者自己）。
  *   - 客戶確認信預設寄；若開發 / 測試要關閉，設 APPOINTMENT_NOTIFY_CUSTOMER=0。
  */
-import { sendMail } from "@/lib/mail";
+import { sendMail, type SendMailInput } from "@/lib/mail";
 import { notifyAbinAdminGroup } from "@/lib/line-notify";
 import {
   ensureAppointmentTable,
@@ -33,6 +33,67 @@ const ABIN_OFFICE_LOCATION: MeetLocation = {
   source: "manual",
 };
 const TW_OFFSET_MS = 8 * 3600_000;
+
+/**
+ * 客戶留的 LINE ID → 加好友頁的網址。
+ *
+ * 🔴 LINE **沒有**任何「幫你自動加好友」的介面，任何系統都做不到（防的就是機器人亂加）。
+ *    能做到的極限就是這個：把「加這個人」的連結準備好，你在手機上點一下就進加好友頁。
+ */
+export function lineAddFriendUrl(lineId: string | null | undefined): string | null {
+  const id = String(lineId || "").trim().replace(/^@/, "");
+  // LINE ID 只有英數與 . _ -；客戶亂填（例如寫「我的line是...」）就不要生連結，免得點了 404
+  if (!id || !/^[A-Za-z0-9._-]{2,40}$/.test(id)) return null;
+  return `https://line.me/ti/p/~${encodeURIComponent(id)}`;
+}
+
+/**
+ * 把客戶做成一張「電子名片檔」(.vcf) 夾在通知信裡。
+ *
+ * 為什麼要這個：手機上點開附件 → 存到通訊錄，兩下就好。
+ * 之後這個客戶打來，螢幕上直接顯示他的名字，不會是一組陌生號碼。
+ * （Google 聯絡人那邊是自動加的；這張是備援，換手機、沒同步時也還在。）
+ */
+export function buildCustomerVCard(a: {
+  name: string;
+  phone: string;
+  email?: string | null;
+  lineId?: string | null;
+  note?: string | null;
+  slotText?: string | null;
+  intentText?: string | null;
+}): { filename: string; content: string; contentType: string } {
+  // vCard 規格裡 , ; \ 是分隔字元，客戶名字或備註帶到會讓整張名片解析壞掉
+  const v = (s: unknown) => String(s ?? "").replace(/\\/g, "\\\\").replace(/[,;]/g, (m) => `\\${m}`).replace(/\r?\n/g, "\\n");
+  const noteLines = [
+    a.slotText ? `預約時段：${a.slotText}` : "",
+    a.intentText ? `需求：${a.intentText}` : "",
+    a.lineId ? `LINE：${a.lineId}` : "",
+    a.note ? `備註：${a.note}` : "",
+  ].filter(Boolean);
+
+  const lines = [
+    "BEGIN:VCARD",
+    "VERSION:3.0",
+    `N:${v(a.name)};;;;`,
+    `FN:${v(a.name)}`,
+    // 來電時多數手機會在名字底下顯示公司欄，拿來標「哪來的」最好認
+    "ORG:線上預約客戶",
+    `TEL;TYPE=CELL:${v(a.phone)}`,
+    a.email ? `EMAIL;TYPE=INTERNET:${v(a.email)}` : "",
+    noteLines.length ? `NOTE:${v(noteLines.join("\n"))}` : "",
+    "CATEGORIES:線上預約客戶",
+    `REV:${new Date().toISOString()}`,
+    "END:VCARD",
+  ].filter(Boolean);
+
+  return {
+    // 檔名用 ASCII，中文檔名在某些手機的郵件 App 會變亂碼開不起來
+    filename: "new-contact.vcf",
+    content: Buffer.from(lines.join("\r\n"), "utf8").toString("base64"),
+    contentType: "text/vcard; charset=utf-8",
+  };
+}
 
 export type NotifyInput = {
   id: string;
@@ -303,11 +364,13 @@ async function sendAppointmentEmailAndRecord(args: {
   to: string;
   subject: string;
   html: string;
+  attachments?: SendMailInput["attachments"];
 }): Promise<boolean> {
   const result = await sendMail({
     to: args.to,
     subject: args.subject,
     html: args.html,
+    ...(args.attachments?.length ? { attachments: args.attachments } : {}),
   }).catch((e) => ({
     success: false as const,
     provider: "mock" as const,
@@ -605,6 +668,25 @@ export async function notifyNewAppointment(
       (a.meetType === "custom" && mapUrl ? `\n🗺 ${mapUrl}` : "")
     : "";
   const internalManageUrl = `${APPOINTMENT_BASE_URL}/card/booking/manage?token=${encodeURIComponent(createAppointmentManageToken(a.id, a.email))}`;
+  const lineUrl = lineAddFriendUrl(a.lineId);
+  // 這封信是在手機上看的。三顆大按鈕：打給他、加他 LINE、把他存進通訊錄。
+  const contactActionsHtml = `
+    <div style="margin-top:18px;padding:16px;background:#F4FAFC;border:1px solid #CFE6EE;border-radius:12px">
+      <div style="font-size:14px;font-weight:800;color:#1C2D3A;margin-bottom:10px">馬上聯絡他</div>
+      <div style="text-align:center">
+        <a href="tel:${esc(a.phone)}" style="display:inline-block;background:#2BA9C4;color:#fff;font-size:15px;font-weight:800;padding:11px 18px;border-radius:12px;text-decoration:none;margin:4px">📞 撥給 ${esc(a.name)}</a>
+        ${lineUrl ? `<a href="${esc(lineUrl)}" style="display:inline-block;background:#06C755;color:#fff;font-size:15px;font-weight:800;padding:11px 18px;border-radius:12px;text-decoration:none;margin:4px">💬 加他 LINE</a>` : ""}
+      </div>
+      <div style="margin-top:10px;font-size:13px;color:#5B6B78;line-height:1.7">
+        ${lineUrl
+          ? "「加他 LINE」在手機上點會直接開 LINE 的加好友頁 —— LINE 不開放系統代加，這是最快的一步。"
+          : a.lineId
+            ? "客戶留的 LINE ID 格式看起來不對，沒辦法做成連結，請手動搜尋。"
+            : "客戶沒有留 LINE。"}
+        <br>信件下方的附件（new-contact.vcf）點開就能把他存進手機通訊錄，之後他打來就有名字。
+      </div>
+    </div>
+  `;
   const shouldNotifyAdmin = options.notifyAdmin !== false;
   const shouldNotifyCustomer = options.notifyCustomer !== false;
 
@@ -615,7 +697,7 @@ export async function notifyNewAppointment(
       <tr><td style="padding:7px 0;color:#7A8896;width:84px;vertical-align:top">姓名</td><td style="padding:7px 0;font-weight:700">${esc(a.name)} ${honor}</td></tr>
       <tr><td style="padding:7px 0;color:#7A8896;vertical-align:top">電話</td><td style="padding:7px 0"><a href="tel:${esc(a.phone)}" style="color:#2BA9C4;text-decoration:none">${esc(a.phone)}</a></td></tr>
       <tr><td style="padding:7px 0;color:#7A8896;vertical-align:top">Email</td><td style="padding:7px 0">${esc(a.email)}</td></tr>
-      ${a.lineId ? `<tr><td style="padding:7px 0;color:#7A8896;vertical-align:top">LINE</td><td style="padding:7px 0">${esc(a.lineId)}</td></tr>` : ""}
+      ${a.lineId ? `<tr><td style="padding:7px 0;color:#7A8896;vertical-align:top">LINE</td><td style="padding:7px 0">${lineUrl ? `<a href="${esc(lineUrl)}" style="color:#2BA9C4;text-decoration:none">${esc(a.lineId)}</a>` : esc(a.lineId)}</td></tr>` : ""}
       <tr><td style="padding:7px 0;color:#7A8896;vertical-align:top">需求</td><td style="padding:7px 0;font-weight:700;color:#E0950A">${esc(intentStr)}</td></tr>
       <tr><td style="padding:7px 0;color:#7A8896;vertical-align:top">急迫度</td><td style="padding:7px 0">${esc(urgencyStr)}</td></tr>
       <tr><td style="padding:7px 0;color:#7A8896;vertical-align:top">時段</td><td style="padding:7px 0;font-weight:700">${esc(slotTw)}</td></tr>
@@ -623,6 +705,7 @@ export async function notifyNewAppointment(
     </table>
     ${a.note ? `<div style="margin-top:16px;padding:14px 16px;background:#FEF3DF;border-radius:10px;font-size:16px;line-height:1.7"><b>客戶備註</b><br>${esc(a.note).replace(/\n/g, "<br>")}</div>` : ""}
     ${a.aiSuggestion ? `<div style="margin-top:16px;padding:14px 16px;background:#E8F7FB;border-radius:10px;font-size:15px;line-height:1.7"><b>🤖 AI 研判</b>　${esc(a.aiSuggestion)}</div>` : ""}
+    ${contactActionsHtml}
     <div style="margin-top:16px;padding:14px 16px;background:#FFF7E8;border:1px solid #F5A91D;border-radius:12px;font-size:14px;color:#1C2D3A;line-height:1.7">
       <b>內部用</b><br>
       這個入口給律廷查看 / 管理這筆預約;不是給客戶看的確認信。
@@ -646,6 +729,20 @@ export async function notifyNewAppointment(
           preheader: `${a.name} ‧ ${intentStr} ‧ ${slotTw}`,
           bodyHtml: adminBody,
         }),
+        attachments: [
+          {
+            ...buildCustomerVCard({
+              name: a.name,
+              phone: a.phone,
+              email: a.email,
+              lineId: a.lineId,
+              note: a.note,
+              slotText: slotTw,
+              intentText: intentStr,
+            }),
+            disposition: "attachment" as const,
+          },
+        ],
       });
 
   // ② LINE 給系統擁有者（律廷 admin 群,自動 mint token）

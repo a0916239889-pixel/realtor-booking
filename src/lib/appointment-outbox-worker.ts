@@ -27,10 +27,12 @@ import {
 import {
   appointmentLocationText,
   formatSlotRangeTw,
+  lineAddFriendUrl,
   notifyAppointmentChange,
   notifyNewAppointment,
   type NotifyInput,
 } from "@/lib/appointment-notify";
+import { createGoogleContact } from "@/lib/google-contacts";
 import {
   createCalendarEvent,
   deleteCalendarEvent,
@@ -146,6 +148,11 @@ async function runTask(row: AppointmentOutboxRow): Promise<void> {
           `姓名：${appt.name}`,
           appt.phone ? `電話：${appt.phone}` : "",
           appt.email ? `Email：${appt.email}` : "",
+          // 手機上點得到的加好友連結，會面前想先聯絡他不用再回頭翻信
+          appt.line_id ? `LINE：${appt.line_id}` : "",
+          appt.line_id && lineAddFriendUrl(appt.line_id)
+            ? `加他 LINE：${lineAddFriendUrl(appt.line_id)}`
+            : "",
           `見面方式：${meetTypeLabel(appt.meet_type)}`,
           intents ? `需求：${intents}` : "",
           appt.note ? `備註：${appt.note}` : "",
@@ -169,6 +176,24 @@ async function runTask(row: AppointmentOutboxRow): Promise<void> {
       await deleteCalendarEvent(appt.google_event_id);
       await setAppointmentGoogleEvent(appt.id, null, null);
       return;
+
+    // 把客戶寫進 Google 聯絡人 →（手機有登入 Google 的話）通訊錄自動就有，來電顯示名字
+    case "contact_create": {
+      if (!(await isGoogleBound())) return;
+      const input = toNotifyInput(appt);
+      const resourceName = await createGoogleContact({
+        name: appt.name,
+        phone: appt.phone,
+        email: appt.email,
+        lineId: appt.line_id,
+        note: appt.note,
+        slotText: formatSlotRangeTw(input.slotAt, input.slotEndAt),
+        intentText: input.intent.map((key) => intentLabel(key)).join("、"),
+      });
+      // 加不成不算失敗（詳見 google-contacts.ts）：重試只會生出更多重複的聯絡人
+      if (resourceName) console.log(`[outbox] 已加入 Google 聯絡人：${appt.name}`);
+      return;
+    }
 
     // AI 判讀與行銷追蹤都是選配，沒接就直接標記完成，不要卡在佇列裡重試
     case "ai_grade":

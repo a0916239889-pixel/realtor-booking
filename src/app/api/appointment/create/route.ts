@@ -158,6 +158,12 @@ async function enqueueCreatedAppointmentTasks(appt: AppointmentRow): Promise<voi
               taskType: "calendar_create" as const,
               dedupeKey: `appointment:${appt.id}:calendar-create`,
             }),
+            // 2026-09-09：順手寫進 Google 聯絡人，手機通訊錄會同步過去
+            enqueueAppointmentOutbox({
+              appointmentId: appt.id,
+              taskType: "contact_create" as const,
+              dedupeKey: `appointment:${appt.id}:contact-create`,
+            }),
           ]
         : []),
       enqueueAppointmentOutbox({

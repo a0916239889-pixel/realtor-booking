@@ -27,8 +27,12 @@ export const CALENDAR_EVENT_COLORS: ReadonlyArray<{ id: string; name: string; he
 /** 2026-06-20 起用的孔雀藍。沒設定時沿用，避免既有日曆突然變色。 */
 export const DEFAULT_CALENDAR_COLOR_ID = "7";
 
-/** 沒設定時的標題。維持原樣，設定沒填不會改變任何既有行為。 */
-export const DEFAULT_CALENDAR_TITLE_TEMPLATE = "客戶預約｜{姓名}";
+/**
+ * 沒設定時的標題。
+ * 2026-09-09 加上電話：手機日曆只看得到標題那一行，把電話放進去，
+ * 出門前掃一眼日曆就能直接撥，不用點進去看說明欄。
+ */
+export const DEFAULT_CALENDAR_TITLE_TEMPLATE = "客戶預約｜{姓名} {電話}";
 
 /** 存在 appointment_config 的 key */
 export const CALENDAR_TITLE_CONFIG_KEY = "calendar_title_template";

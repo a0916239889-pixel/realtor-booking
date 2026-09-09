@@ -369,14 +369,44 @@ export default async function AppointmentsAdminPage({
               先處理逾時與異常，再追蹤到場、結果及實際成交。
             </p>
           </div>
-          <div style={{ color: googleBound ? "#4ade80" : "#fbbf24", fontSize: 15, fontWeight: 800 }}>
-            <StatusDot tone={googleBound ? "green" : "yellow"} title={googleBound ? "已綁定" : "未綁定"} />
-            {" "}
-            {googleBound
-              ? "Google 日曆已綁定"
-              : googleConfigured
-                ? "Google 日曆尚未綁定"
-                : "Google 日曆尚未設定"}
+          {/* 2026-09-09：原本只有一顆狀態燈，沒有任何地方可以按「去授權」，
+              要自己手打 /api/appointment/google/auth 才綁得起來。補上按鈕。 */}
+          <div style={{ textAlign: "right" }}>
+            <div style={{ color: googleBound ? "#4ade80" : "#fbbf24", fontSize: 15, fontWeight: 800 }}>
+              <StatusDot tone={googleBound ? "green" : "yellow"} title={googleBound ? "已綁定" : "未綁定"} />
+              {" "}
+              {googleBound
+                ? "Google 日曆與聯絡人已授權"
+                : googleConfigured
+                  ? "Google 日曆與聯絡人尚未授權"
+                  : "Google 尚未設定（少了 OAuth 用戶端）"}
+            </div>
+            {googleConfigured ? (
+              <div style={{ marginTop: 8, display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                <a
+                  href="/api/appointment/google/auth"
+                  style={{
+                    display: "inline-block", background: "#4ade80", color: "#0b1520",
+                    fontSize: 14, fontWeight: 800, padding: "8px 16px", borderRadius: 10, textDecoration: "none",
+                  }}
+                >
+                  {googleBound ? "重新授權" : "授權 Google 日曆與聯絡人"}
+                </a>
+                {googleBound ? (
+                  <form action="/api/appointment/google/disconnect" method="post" style={{ display: "inline" }}>
+                    <button
+                      type="submit"
+                      style={{
+                        background: "transparent", color: "#94a3b8", border: "1px solid #2a3441",
+                        fontSize: 14, fontWeight: 700, padding: "8px 16px", borderRadius: 10, cursor: "pointer",
+                      }}
+                    >
+                      解除綁定
+                    </button>
+                  </form>
+                ) : null}
+              </div>
+            ) : null}
           </div>
         </div>
 
@@ -386,6 +416,11 @@ export default async function AppointmentsAdminPage({
         {sp.google === "fail" ? (
           <div style={{ color: "#fb7185", marginBottom: 12, fontSize: 15 }}>
             Google 日曆綁定失敗，請確認 OAuth 設定後重試。
+          </div>
+        ) : null}
+        {sp.google === "unbound" ? (
+          <div style={{ color: "#94a3b8", marginBottom: 12, fontSize: 15 }}>
+            已解除 Google 綁定。按上面的「授權」可以重新綁回來（日曆上既有的事件不受影響）。
           </div>
         ) : null}
 
