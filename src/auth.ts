@@ -41,5 +41,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return session;
     },
   },
-  pages: { signIn: "/api/auth/signin" },
+  // 2026-09-09 拿掉 pages.signIn：原本指到 /api/auth/signin，那正是 next-auth 內建登入頁的路徑，
+  // next-auth 會把「內建頁」轉去「自訂頁」→ 同一個網址 → 無限轉圈（實測 curl 轉 5 次還在轉）。
+  // 不設就用內建頁，一顆「Sign in with Google」剛剛好。
 });
