@@ -17,3 +17,6 @@ Thumbs.db
 *.tsbuildinfo
 next-env.d.ts
 /prisma/*.db
+
+# Local Netlify folder
+.netlify

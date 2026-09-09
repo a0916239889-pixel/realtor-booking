@@ -11,6 +11,7 @@
  *   1. 預約成立後立刻在背景跑一次（客人按下送出 → 幾秒內就收到信）
  *   2. /api/appointment/outbox/run 給排程定時打，處理重試與提醒
  */
+import { after } from "next/server";
 import {
   claimAppointmentOutbox,
   finishAppointmentOutbox,
@@ -205,9 +206,25 @@ export async function runAppointmentOutbox(limit = 20): Promise<OutboxRunResult>
   return result;
 }
 
-/** 給「預約剛成立」用：背景跑一輪，不擋住 API 回應，也不會讓寄信失敗害預約失敗。 */
+/**
+ * 給「預約剛成立」用：背景跑一輪，不擋住 API 回應，也不會讓寄信失敗害預約失敗。
+ *
+ * 🔴 2026-09-09 上線後才發現：本機開發時直接 `void runAppointmentOutbox()` 會跑完，
+ *    但部署到 Netlify（雲端函式）上，回應一送出去，那個函式就被**凍結／回收**，
+ *    還沒寄的信就永遠停在 pending。實測第一筆線上預約的 notify_new 就卡住沒動。
+ *    改用 Next.js 的 after()：它會告訴平台「回應送出後還有事要做，先別關」。
+ *    另外 netlify/functions/outbox-cron.mts 每 2 分鐘再掃一次當保險（重試也靠它）。
+ */
 export function runAppointmentOutboxInBackground(limit = 10): void {
-  void runAppointmentOutbox(limit).catch((error) => {
-    console.error("[outbox] 背景執行失敗:", error);
-  });
+  const run = () =>
+    runAppointmentOutbox(limit).catch((error) => {
+      console.error("[outbox] 背景執行失敗:", error);
+    });
+
+  try {
+    // after() 只能在請求生命週期內呼叫；不在的話會丟錯，退回原本的做法。
+    after(run);
+  } catch {
+    void run();
+  }
 }

@@ -29,8 +29,8 @@ export const LEGACY_DEFAULT_DURATION_MIN = 60;
 // ---- 意圖（含動態 placeholder:選哪類,備註提示就換哪句）----
 // interviewOnly 的（面試）只在 /card/booking?type=interview 專用連結顯示;預設客戶端不出現。2026-07-17
 export const INTENTS = [
-  { key: "buy", label: "買房", emoji: "🏠", placeholder: "例:想找北屯三房、預算 1,500 萬、自住自用" },
-  { key: "sell", label: "賣房", emoji: "🏷️", placeholder: "例:範例路透天想賣、換屋週轉、希望盡快出售" },
+  { key: "buy", label: "買房", emoji: "🏠", placeholder: "例:想找三重三房、預算 1,500 萬、自住自用" },
+  { key: "sell", label: "賣房", emoji: "🏷️", placeholder: "例:蘆洲公寓想賣、換屋週轉、希望盡快出售" },
   { key: "rent", label: "租賃", emoji: "🔑", placeholder: "例:想租 or 出租、想要的區域、預算、何時要" },
   { key: "legal", label: "法律諮詢", emoji: "⚖️", placeholder: "例:繼承過戶、產權問題、買賣糾紛、貸款疑問" },
   { key: "interview", label: "面試", emoji: "🧑‍💼", placeholder: "例:應徵職位、方便聯絡的時間、想先了解的事", interviewOnly: true },
@@ -44,7 +44,7 @@ export const URGENCIES = [
 ] as const;
 
 export const MEET_TYPES = [
-  { key: "office", label: "公司面談", emoji: "🏢", desc: "台灣房屋三重國小捷運店・正義北路100號" },
+  { key: "office", label: "公司面談", emoji: "🏢", desc: "台灣房屋三重國小捷運店・三和路三段30號" },
   { key: "phone", label: "電話聯繫", emoji: "📞", desc: "律廷主動來電" },
   { key: "video", label: "線上視訊", emoji: "💻", desc: "Google Meet / LINE 視訊" },
   // 2026-06-25 第 4 種:客戶自己指定見面地點（Google Places 自動完成 + 純文字備案）

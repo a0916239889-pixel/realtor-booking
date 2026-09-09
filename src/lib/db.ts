@@ -8,7 +8,9 @@ const globalForPrisma = globalThis as unknown as {
 
 function serverlessDatasourceUrl(): string | undefined {
   const raw = process.env.DATABASE_URL;
-  if (!raw || !process.env.VERCEL) return undefined;
+  // Netlify 也是一個請求開一個函式，跟 Vercel 一樣會把資料庫連線數吃光，
+  // 原版只認 VERCEL，實際部署在 Netlify 就完全沒套到上限。
+  if (!raw || !(process.env.VERCEL || process.env.NETLIFY)) return undefined;
 
   try {
     const url = new URL(raw);

@@ -26,7 +26,7 @@ const GENDER_HONOR: Record<string, string> = { male: "先生", female: "小姐" 
 const ABIN_PRIVATE_LINE_URL = SOCIAL.line;
 const ABIN_OFFICE_LOCATION: MeetLocation = {
   name: "台灣房屋三重國小捷運特許加盟店",
-  address: "新北市三重區正義北路100號",
+  address: "新北市三重區三和路三段30號",
   lat: null,
   lng: null,
   placeId: null,

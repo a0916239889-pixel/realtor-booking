@@ -1,0 +1,14 @@
+# Netlify 建置設定
+#
+# 為什麼建置指令要多一段 prisma generate：
+# Netlify 會快取 node_modules，快取命中時 @prisma/client 的 postinstall 不會重跑，
+# 產出的 client 就會是沒有型別／舊 schema 的版本，建置到一半才爆。明著先產一次最省事。
+
+[build]
+  command = "npx prisma generate && npm run build"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[build.environment]
+  NODE_VERSION = "20"
