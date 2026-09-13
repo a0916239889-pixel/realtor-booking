@@ -105,28 +105,69 @@ function readPhase(row: AppointmentOutboxRow): "confirmation_request" | "confirm
   }
 }
 
+/**
+ * 從 payload 讀「要通知誰」。
+ *
+ * 🔴 2026-09-13 之前這裡永遠寫死 notifyCustomer: true —— 後台「改期或取消時，把客戶通知排入背景佇列」
+ *    那個勾選框拿掉勾也照樣寄，等於那個勾選框是假的。現在排任務的人說了算，這裡照辦。
+ *
+ * force：跳過「這封已經寄成功過就不再寄」的判斷。後台「重排客戶確認通知」那顆按鈕的用意就是再寄一次，
+ *        不 force 的話它會永遠被當成「已經寄過了」而靜默略過。
+ *
+ * 沒帶的欄位維持原本的行為（客戶與店東都通知、不強制重寄），舊任務不受影響。
+ */
+function readNotifyFlags(row: AppointmentOutboxRow): {
+  notifyCustomer: boolean;
+  notifyAdmin: boolean;
+  force: boolean;
+  previousSlotTw: string | null;
+} {
+  const defaults = { notifyCustomer: true, notifyAdmin: true, force: false, previousSlotTw: null };
+  if (!row.payload_json) return defaults;
+  try {
+    const p = JSON.parse(row.payload_json) as Record<string, unknown>;
+    return {
+      notifyCustomer: p.notifyCustomer !== false,
+      notifyAdmin: p.notifyAdmin !== false,
+      force: p.force === true,
+      previousSlotTw: typeof p.previousSlotTw === "string" && p.previousSlotTw ? p.previousSlotTw : null,
+    };
+  } catch {
+    return defaults;
+  }
+}
+
 async function runTask(row: AppointmentOutboxRow): Promise<void> {
   const appt = await getAppointment(row.appointment_id);
   if (!appt) return; // 預約已被刪掉 → 這個任務沒意義，當作做完
 
   switch (row.task_type) {
-    case "notify_new":
+    case "notify_new": {
+      const flags = readNotifyFlags(row);
       await notifyNewAppointment(toNotifyInput(appt), {
         phase: readPhase(row),
-        onlyPending: true,
-        notifyAdmin: true,
-        notifyCustomer: true,
+        onlyPending: !flags.force,
+        notifyAdmin: flags.notifyAdmin,
+        notifyCustomer: flags.notifyCustomer,
       });
       return;
+    }
 
     case "notify_reschedule":
-    case "notify_cancel":
+    case "notify_cancel": {
+      const flags = readNotifyFlags(row);
       await notifyAppointmentChange(
         toNotifyInput(appt),
-        { type: row.task_type === "notify_cancel" ? "cancel" : "reschedule" },
-        { onlyPending: true, notifyAdmin: true, notifyCustomer: true },
+        {
+          type: row.task_type === "notify_cancel" ? "cancel" : "reschedule",
+          // 排任務的人早就把「原時段」放進 payload 了，之前這裡沒拿出來用，
+          // 所以你收到的改期 LINE 只有新時間、沒有舊時間，看不出是從哪裡改過來的。
+          previousSlotTw: flags.previousSlotTw,
+        },
+        { onlyPending: !flags.force, notifyAdmin: flags.notifyAdmin, notifyCustomer: flags.notifyCustomer },
       );
       return;
+    }
 
     case "calendar_create":
     case "calendar_reschedule": {
