@@ -7,6 +7,10 @@
  *    然後永遠沒人執行 —— 系統擁有者收不到通知，客戶也收不到確認信。
  *    （原作者應該是另外自己跑排程打某個端點，那段沒放進這包開源檔。）
  *
+ * 🔑 判準：**任務裡任何一步失敗就往上丟**，由下面的 runAppointmentOutbox 標記失敗、排指數退避重試，
+ *    後台「通知／日曆異常」篩選才看得到。只有明確「本來就不用做」（沒綁 Google、預約已刪）才可以直接 return。
+ *    唯一的例外是 contact_create，理由寫在那一段。
+ *
  * 這個檔負責把佇列撈出來真的做掉，兩個地方會呼叫它：
  *   1. 預約成立後立刻在背景跑一次（客人按下送出 → 幾秒內就收到信）
  *   2. /api/appointment/outbox/run 給排程定時打，處理重試與提醒
@@ -126,7 +130,8 @@ async function runTask(row: AppointmentOutboxRow): Promise<void> {
 
     case "calendar_create":
     case "calendar_reschedule": {
-      // 沒綁 Google 日曆就當作不用做（之後綁定，新的預約自然會排新任務）
+      // 沒綁 Google 日曆就當作不用做（之後綁定，新的預約自然會排新任務）。
+      // 這是唯一一個「直接當完成」是對的情況：後台首頁已經大字寫著「尚未授權」，不會有人被騙。
       if (!(await isGoogleBound())) return;
       const input = toNotifyInput(appt);
       const display = await getCalendarDisplaySettings();
@@ -138,9 +143,13 @@ async function runTask(row: AppointmentOutboxRow): Promise<void> {
         intent: intents,
         purpose: intents,
       });
-      // 舊事件先刪掉再建，避免改期後日曆上留兩筆
+      // 舊事件先刪掉再建，避免改期後日曆上留兩筆。
+      // 🔴 2026-09-13：這裡原本是 .catch(() => {}) —— 刪失敗也照樣往下建新的，
+      //    結果就是客戶改期後你的日曆上同時躺著舊時間和新時間兩筆，而且沒人會告訴你。
+      //    現在讓它往上丟：整個任務算失敗、排重試，下一輪會再刪一次。
+      //    （事件早就不在了 Google 會回 404/410，deleteCalendarEvent 當成功，不會卡在這裡重試。）
       if (appt.google_event_id) {
-        await deleteCalendarEvent(appt.google_event_id).catch(() => {});
+        await deleteCalendarEvent(appt.google_event_id);
       }
       const created = await createCalendarEvent({
         summary,
@@ -167,7 +176,9 @@ async function runTask(row: AppointmentOutboxRow): Promise<void> {
         attendeeEmail: process.env.APPOINTMENT_GOOGLE_INVITE_CUSTOMER === "1" ? appt.email : null,
         attendeeName: appt.name,
       });
-      if (created) await setAppointmentGoogleEvent(appt.id, created.eventId, created.meetUrl);
+      // createCalendarEvent 建不成會 throw（2026-09-13 改）——
+      // 這裡不需要再判斷 created 有沒有值，能走到這行就是真的寫進日曆了。
+      await setAppointmentGoogleEvent(appt.id, created.eventId, created.meetUrl);
       return;
     }
 
@@ -190,7 +201,9 @@ async function runTask(row: AppointmentOutboxRow): Promise<void> {
         slotText: formatSlotRangeTw(input.slotAt, input.slotEndAt),
         intentText: input.intent.map((key) => intentLabel(key)).join("、"),
       });
-      // 加不成不算失敗（詳見 google-contacts.ts）：重試只會生出更多重複的聯絡人
+      // 加不成**刻意**不算失敗（詳見 google-contacts.ts）：重試只會生出更多重複的聯絡人。
+      // ⚠️ 這是整個佇列裡唯一容忍失敗的任務。日曆那兩支已於 2026-09-13 改成失敗就重試 ——
+      //    差別在於：聯絡人重複建很難收拾，日曆沒建成則是會真的漏掉客戶。
       if (resourceName) console.log(`[outbox] 已加入 Google 聯絡人：${appt.name}`);
       return;
     }

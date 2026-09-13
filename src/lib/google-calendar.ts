@@ -2,7 +2,13 @@
  * Google Calendar 整合 — 預約系統綁定系統擁有者的 Google 日曆（2026-06-19）
  * - OAuth(refresh token,系統擁有者本人授權一次)→ 查 timed events 擋已排行程 + 建/改/刪 event + 視訊產 Google Meet
  * - refresh token 存 appointment_config 表
- * - 🛡️ Graceful:沒綁定 / 出錯一律安全 fallback(timed events 回 [] → 規則制照常;建 event 回 null → 不擋預約)
+ * - 🛡️ **讀**(查已排行程)出錯一律安全 fallback → 回 [] 讓規則制照常,不擋客戶預約
+ * - 🔴 **寫**(建/刪/改 event)出錯一律 throw GoogleCalendarWriteError → 讓通知佇列標記失敗並重試
+ *
+ *   2026-09-13 修正:寫入失敗原本跟讀取一樣回 null,通知佇列收到 null 當成「做完了」,
+ *   標記 completed、不重試,後台卡片還顯示「日曆:已完成」。
+ *   等於**把「沒丟出例外」當成「寫進去了」**。
+ *   讀不到可以裝沒事(大不了少擋一個時段),寫不進去不能裝沒事(客戶真的會被漏掉)。
  *
  * 啟用前提(一次性):
  *   1. Google Cloud Console 該 OAuth client 加 redirect URI: {BASE}/api/appointment/google/callback
@@ -191,6 +197,26 @@ export class GoogleCalendarUnavailableError extends Error {
   }
 }
 
+/**
+ * 寫入失敗。**一定要讓它往上丟** —— 通知佇列才會標記失敗、排重試,
+ * 後台的「通知／日曆異常」篩選才看得到這筆。
+ * 跟上面的 GoogleCalendarUnavailableError 分開:那個是「查不到空檔」,這個是「沒寫進去」。
+ */
+export class GoogleCalendarWriteError extends Error {
+  constructor(
+    readonly op: "create" | "delete" | "update",
+    readonly detail: string,
+  ) {
+    super(`google_calendar_${op}_failed: ${detail}`);
+    this.name = "GoogleCalendarWriteError";
+  }
+}
+
+/** 授權失效時三支寫入共用同一句話(後台 last_error 會原文顯示,所以寫成人看得懂的中文) */
+function noTokenError(op: "create" | "delete" | "update"): GoogleCalendarWriteError {
+  return new GoogleCalendarWriteError(op, "拿不到 Google access token —— 授權可能已失效,請到後台按「重新授權」");
+}
+
 type CalendarEventTime = {
   date?: string;
   dateTime?: string;
@@ -341,10 +367,10 @@ export async function createCalendarEvent(opts: {
   location?: string | null;
   attendeeEmail?: string | null;
   attendeeName?: string | null;
-}): Promise<{ eventId: string; meetUrl: string | null } | null> {
+}): Promise<{ eventId: string; meetUrl: string | null }> {
   const token = await getAccessToken();
-  if (!token) return null;
-  try {
+  if (!token) throw noTokenError("create");
+  {
     const calId = await getCalendarId();
     const display = await getCalendarDisplaySettings();
     const body: Record<string, unknown> = {
@@ -368,49 +394,64 @@ export async function createCalendarEvent(opts: {
     const p = new URLSearchParams({ conferenceDataVersion: "1" });
     if (shouldInviteCustomer) p.set("sendUpdates", "all");
     const url = `${CAL_API}/calendars/${encodeURIComponent(calId)}/events?${p.toString()}`;
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(8000),
-    });
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(8000),
+      });
+    } catch (e) {
+      // 逾時(AbortSignal)與斷線都走這裡,兩種都值得重試,所以往上丟。
+      throw new GoogleCalendarWriteError("create", `連不上 Google:${e instanceof Error ? e.message : String(e)}`);
+    }
     if (!res.ok) {
-      console.error("[google-cal] 建 event 失敗:", (await res.text()).slice(0, 200));
-      return null;
+      throw new GoogleCalendarWriteError("create", `HTTP ${res.status} ${(await res.text()).slice(0, 300)}`);
     }
     const d = await res.json();
+    // 沒拿到 id 等於沒建成:存 undefined 進 google_event_id,之後改期與取消都會找不到那筆事件。
+    if (!d?.id || typeof d.id !== "string") {
+      throw new GoogleCalendarWriteError("create", "Google 回 200 但沒有給事件 id");
+    }
     const meetUrl =
       d?.hangoutLink ||
       (d?.conferenceData?.entryPoints || []).find((e: { entryPointType?: string; uri?: string }) => e.entryPointType === "video")?.uri ||
       null;
     return { eventId: d.id, meetUrl };
-  } catch (e) {
-    console.error("[google-cal] createCalendarEvent 例外:", e);
-    return null;
   }
 }
 
 export async function deleteCalendarEvent(eventId: string): Promise<void> {
+  if (!eventId) return; // 本來就沒建事件 → 沒東西要刪,不算失敗
   const token = await getAccessToken();
-  if (!token || !eventId) return;
+  if (!token) throw noTokenError("delete");
+  const calId = await getCalendarId();
+  let res: Response;
   try {
-    const calId = await getCalendarId();
-    await fetch(`${CAL_API}/calendars/${encodeURIComponent(calId)}/events/${encodeURIComponent(eventId)}`, {
+    res = await fetch(`${CAL_API}/calendars/${encodeURIComponent(calId)}/events/${encodeURIComponent(eventId)}`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
       signal: AbortSignal.timeout(8000),
     });
   } catch (e) {
-    console.error("[google-cal] deleteCalendarEvent 例外:", e);
+    throw new GoogleCalendarWriteError("delete", `連不上 Google:${e instanceof Error ? e.message : String(e)}`);
   }
+  // 404 / 410 = 那筆事件早就不在了(常見:系統擁有者自己在日曆上滑掉)。
+  // 目的是「日曆上不要有這筆」,已經達成了,不能當成失敗一直重試。
+  if (res.ok || res.status === 404 || res.status === 410) return;
+  throw new GoogleCalendarWriteError("delete", `HTTP ${res.status} ${(await res.text()).slice(0, 300)}`);
 }
 
+/** ⚠️ 目前沒有人呼叫(改期走「刪舊的再建新的」)。留著,但比照另外兩支會 throw,免得日後接來用又踩同一個坑。 */
 export async function updateCalendarEventTime(eventId: string, startIso: string, endIso: string): Promise<void> {
+  if (!eventId) return;
   const token = await getAccessToken();
-  if (!token || !eventId) return;
+  if (!token) throw noTokenError("update");
+  const calId = await getCalendarId();
+  let res: Response;
   try {
-    const calId = await getCalendarId();
-    await fetch(`${CAL_API}/calendars/${encodeURIComponent(calId)}/events/${encodeURIComponent(eventId)}`, {
+    res = await fetch(`${CAL_API}/calendars/${encodeURIComponent(calId)}/events/${encodeURIComponent(eventId)}`, {
       method: "PATCH",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -420,6 +461,9 @@ export async function updateCalendarEventTime(eventId: string, startIso: string,
       signal: AbortSignal.timeout(8000),
     });
   } catch (e) {
-    console.error("[google-cal] updateCalendarEventTime 例外:", e);
+    throw new GoogleCalendarWriteError("update", `連不上 Google:${e instanceof Error ? e.message : String(e)}`);
+  }
+  if (!res.ok) {
+    throw new GoogleCalendarWriteError("update", `HTTP ${res.status} ${(await res.text()).slice(0, 300)}`);
   }
 }
