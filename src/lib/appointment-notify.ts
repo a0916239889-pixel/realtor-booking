@@ -370,6 +370,19 @@ async function sendAppointmentEmailAndRecord(args: {
     to: args.to,
     subject: args.subject,
     html: args.html,
+    /**
+     * 🔴 客戶按「回覆」要真的寄得到人。
+     *
+     * 確認信的內文寫著「有任何狀況，直接回覆這封信或加律廷 LINE 都可以」，
+     * 但寄件位址是 MAIL_FROM_EMAIL（@chouluting.com），而那個網域**只設定了寄信、
+     * 沒有設定收信**（Resend 的 Enable Receiving 是關的，也沒有 apex MX）。
+     * 沒有這一行的話，客戶回的信會寄進一個沒有人收的信箱，然後安靜地消失 ——
+     * 信裡承諾了一件做不到的事，而且失敗的樣子跟成功一模一樣。
+     *
+     * `owner.ts` 的 email 欄位註解本來就寫著「客戶回信會到這裡」，只是一直沒接上。
+     * 寄給店東自己的通知信也走這個函式，回信地址等於他自己，無害。
+     */
+    replyTo: OWNER.email,
     ...(args.attachments?.length ? { attachments: args.attachments } : {}),
   }).catch((e) => ({
     success: false as const,
